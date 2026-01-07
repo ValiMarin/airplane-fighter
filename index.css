@@ -1,0 +1,19 @@
+body {
+  background-color: rgb(35, 56, 72);
+  margin: 0;
+  height: 100vh;
+}
+
+header {
+  font-weight: 800;
+  font-size: clamp(16px, 5vw, 80px);
+  color: rgb(255, 255, 255);
+  -webkit-text-stroke: 0.05em rgb(0, 0, 0);
+}
+
+p {
+  font-weight: 700;
+  font-size: clamp(16px, 2vw, 80px);
+  color: rgb(255, 255, 255);
+  -webkit-text-stroke: 0.04em rgb(0, 0, 0);
+}
