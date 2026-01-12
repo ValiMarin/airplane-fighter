@@ -11,7 +11,7 @@ let player,
   playerBox,
   obstacles,
   projectiles,
-  clounds,
+  clounds = [],
   cloundsInterval,
   avoidedObjectsCounter,
   difficulty,
@@ -22,8 +22,6 @@ let player,
   stopSpawn,
   playerFireLength,
   playerFireInterval;
-
-const shootingCooldown = 1000;
 
 const keys = {};
 
@@ -48,7 +46,6 @@ function newGame(time) {
 
     obstacles = [];
     projectiles = [];
-    clounds = [];
     secondsAlive = 0;
     destroyedObjectsCounter = 0;
     avoidedObjectsCounter = 0;
@@ -59,14 +56,14 @@ function newGame(time) {
     isReloading = false;
     stopSpawn = false;
 
-    playerInitialPosition();
+    setInitialPlayerPosition();
     spawnerObstacle();
     spawnerClouds();
     update();
   }, time);
 }
 
-function playerInitialPosition() {
+function setInitialPlayerPosition() {
   player = {
     x: canvas.width / 2,
     y: canvas.height - 30,
@@ -84,15 +81,7 @@ function playerInitialPosition() {
 
 function spawnerObstacle() {
   setTimeout(() => {
-    const colors = ["red", "green", "blue", "yellow", "pink", "white"];
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-
-    const width = Math.random() * (200 - 70) + 70;
-    const height = Math.random() * (200 - 70) + 70;
-
-    const speed = Math.random() * (1.5 - 0.3) + 0.3;
-
-    spawnObstacle(randomColor, width, height, speed);
+    spawnObstacle();
 
     if (difficulty > 2600) difficulty -= 100;
     else if (difficulty > 2300) difficulty -= 80;
@@ -106,39 +95,46 @@ function spawnerObstacle() {
   }, difficulty);
 }
 
-function spawnObstacle(randomColor, width, height, speed) {
+function spawnObstacle() {
+  const width = random(70, 200);
+  const height = random(70, 200);
+  const colors = ["red", "green", "blue", "yellow", "pink", "white"];
+
   obstacles.push({
     x: Math.random() * (canvas.width - width - 30) + 15,
     y: -height,
     width: width,
     height: height,
-    color: randomColor,
-    speed: speed,
+    color: colors[Math.floor(random(0, colors.length))],
+    speed: random(0.3, 1.5),
   });
 }
 
 function spawnerClouds() {
   cloundsInterval = setInterval(() => {
-    const width = Math.random() * (500 - 70) + 200;
-    const height = Math.random() * (500 - 70) + 200;
-
-    spawnCloud(width, height);
+    spawnCloud();
   }, 2000);
 }
 
-function spawnCloud(width, height) {
+function spawnCloud() {
+  const width = random(70, 500);
+  const height = random(70, 500);
+
   clounds.push({
-    x: Math.random() * (canvas.width - width - 30) + 15,
+    x: random(15, canvas.width - width - 15),
     y: -height,
     width: width,
     height: height,
     speed: 0.5,
   });
-  console.log("cloud");
+}
+
+function random(min, max) {
+  return Math.random() * (max - min) + min;
 }
 
 function update() {
-  if (keys[" "] && reloading()) {
+  if (keys[" "] && reload()) {
     shooting();
   }
 
@@ -147,11 +143,11 @@ function update() {
   requestAnimationFrame(update);
 }
 
-function reloading() {
+function reload() {
   if (isReloading === false) {
     setTimeout(() => {
       isReloading = false;
-    }, shootingCooldown);
+    }, 1000);
 
     isReloading = true;
     return true;
@@ -232,18 +228,12 @@ function drawPlayer() {
     playerBox.x += player.speed;
   }
 
-  //draw weapons
-  context.fillStyle = "rgba(255, 0, 0, 0.74)";
-  context.fillRect(player.x + 45, player.y - 45, 6, 15);
-  context.fillRect(player.x - 50, player.y - 45, 6, 15);
+  drawplayerWeapons();
+  drawPlayerFire();
+  drawPlayerBody();
+}
 
-  //draw fire
-  context.fillStyle = "rgba(255, 179, 0, 1)";
-  context.fillRect(player.x - 3, player.y + 3, 6, playerFireLength);
-  context.fillRect(player.x + 5, player.y + 3, 4, playerFireLength - 7);
-  context.fillRect(player.x - 9, player.y + 3, 4, playerFireLength - 7);
-
-  //draw player body
+function drawPlayerBody() {
   context.fillStyle = player.color;
   context.beginPath();
   context.moveTo(player.x, player.y - 100);
@@ -259,6 +249,19 @@ function drawPlayer() {
   context.lineTo(player.x - 15, player.y - 20);
   context.closePath();
   context.fill();
+}
+
+function drawPlayerFire() {
+  context.fillStyle = "rgba(255, 179, 0, 1)";
+  context.fillRect(player.x - 3, player.y + 3, 6, playerFireLength);
+  context.fillRect(player.x + 5, player.y + 3, 4, playerFireLength - 7);
+  context.fillRect(player.x - 9, player.y + 3, 4, playerFireLength - 7);
+}
+
+function drawplayerWeapons() {
+  context.fillStyle = "rgba(255, 0, 0, 0.74)";
+  context.fillRect(player.x + 45, player.y - 45, 6, 15);
+  context.fillRect(player.x - 50, player.y - 45, 6, 15);
 }
 
 function drawObstacles() {
@@ -281,34 +284,43 @@ function drawObstacles() {
       continue;
     }
 
-    if (checkCollider(playerBox, obstacles[i])) {
-      clearInterval(secondsAliveInterval);
-      clearInterval(playerFireInterval);
-      clearInterval(cloundsInterval);
-      stopSpawn = true;
-      newGame(3000);
-      playerDestroyed = true;
-    }
+    if (checkPlayerCollision(i)) playerDestroyed = true;
 
-    for (let j = projectiles.length - 1; j >= 0; --j) {
-      if (checkCollider(projectiles[j], obstacles[i])) {
-        obstacles.splice(i, 1);
-        projectiles.splice(j, 1);
+    if (playerDestroyed) return false;
 
-        ++destroyedObjectsCounter;
-        destroyedObjects.textContent =
-          "Destroyed objects: " + destroyedObjectsCounter;
-        break;
-      }
-    }
+    checkProjectileCollision(i);
   }
-
-  if (playerDestroyed) return false;
 
   return true;
 }
 
-function checkCollider(playerOrProjectile, obstacle) {
+function checkPlayerCollision(obstacle) {
+  if (checkCollision(playerBox, obstacles[obstacle])) {
+    clearInterval(secondsAliveInterval);
+    clearInterval(playerFireInterval);
+    clearInterval(cloundsInterval);
+    stopSpawn = true;
+    newGame(3000);
+    return true;
+  }
+  return false;
+}
+
+function checkProjectileCollision(obstacle) {
+  for (let j = projectiles.length - 1; j >= 0; --j) {
+    if (checkCollision(projectiles[j], obstacles[obstacle])) {
+      obstacles.splice(obstacle, 1);
+      projectiles.splice(j, 1);
+
+      ++destroyedObjectsCounter;
+      destroyedObjects.textContent =
+        "Destroyed objects: " + destroyedObjectsCounter;
+      break;
+    }
+  }
+}
+
+function checkCollision(playerOrProjectile, obstacle) {
   return (
     playerOrProjectile.x < obstacle.x + obstacle.width &&
     playerOrProjectile.x + playerOrProjectile.width > obstacle.x &&
