@@ -99,8 +99,10 @@ function spawnerObstacle() {
     spawnObstacle();
 
     for (let i = difficultyLevels.length - 1; i >= 0; --i) {
-      if (difficulty > difficultyLevels[i].limit)
+      if (difficulty > difficultyLevels[i].limit) {
         difficulty -= difficultyLevels[i].decrease;
+        break;
+      }
     }
 
     if (!stopSpawn) spawnerObstacle();
