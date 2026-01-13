@@ -23,6 +23,16 @@ let player,
   playerFireLength,
   playerFireInterval;
 
+const difficultyLevels = [
+  { limit: 2600, decrease: 100 },
+  { limit: 2300, decrease: 80 },
+  { limit: 1700, decrease: 40 },
+  { limit: 1200, decrease: 20 },
+  { limit: 800, decrease: 5 },
+  { limit: 500, decrease: 2 },
+  { limit: 200, decrease: 1 },
+];
+
 const keys = {};
 
 document.addEventListener("keydown", (e) => {
@@ -71,11 +81,16 @@ function setInitialPlayerPosition() {
     speed: 3,
   };
 
+  const playerBoxOffsetX = player.x - 55;
+  const playerBoxOffsetY = player.y - 50;
+  const playerBoxWidth = 110;
+  const playerBoxHeight = 50;
+
   playerBox = {
-    x: player.x - 55,
-    y: player.y - 50,
-    width: 110,
-    height: 50,
+    x: playerBoxOffsetX,
+    y: playerBoxOffsetY,
+    width: playerBoxWidth,
+    height: playerBoxHeight,
   };
 }
 
@@ -83,13 +98,10 @@ function spawnerObstacle() {
   setTimeout(() => {
     spawnObstacle();
 
-    if (difficulty > 2600) difficulty -= 100;
-    else if (difficulty > 2300) difficulty -= 80;
-    else if (difficulty > 1700) difficulty -= 40;
-    else if (difficulty > 1200) difficulty -= 20;
-    else if (difficulty > 800) difficulty -= 5;
-    else if (difficulty > 500) difficulty -= 2;
-    else if (difficulty > 200) difficulty -= 1;
+    for (let i = difficultyLevels.length - 1; i >= 0; --i) {
+      if (difficulty > difficultyLevels[i].limit)
+        difficulty -= difficultyLevels[i].decrease;
+    }
 
     if (!stopSpawn) spawnerObstacle();
   }, difficulty);
